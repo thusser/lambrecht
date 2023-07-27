@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lambrecht meteo Weather</title>
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
+    <style>
+        .container {
+            margin-top: 2em;
+        }
+        h3 {
+            margin-top: 1em;
+        }
+        th, td {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Lambrecht meteo Weather</h2>
+    <h3>Current</h3>
+    <table class="table table-sm">
+        <thead>
+        <tr>
+            <th>Time [UT]</th>
+            <th>Ambient Temp[°C]</th>
+            <th>Humidity [%]</th>
+            <th>Wind speed [km/h]</th>
+            <th>Sky Temp Diff[°C]</th>
+            <th>Rain</th>
+        </tr>
+        </thead>
+        {% if current is not None %}
+        <tr>
+            <td>{{ current.format_string('time') }}</td>
+            <td>{{ current.format_string('ambientTemperature') }}</td>
+            <td>{{ current.format_string('relativeHumidityPercentage') }}</td>
+            <td>{{ current.format_string('windSpeed') }}</td>
+            <td>{{ current.format_string('skyMinusAmbientTemperature') }}</td>
+            <td>{{ current.format_string('rainSensor') }}</td>
+        </tr>
+        {% end %}
+    </table>
+
+    <h3>History</h3>
+    <table class="table table-sm table-striped table-hover">
+        <thead>
+        <tr>
+            <th>Time [UT]</th>
+            <th>Ambient Temp[°C]</th>
+            <th>Humidity [%]</th>
+            <th>Wind speed [km/h]</th>
+            <th>Sky Temp Diff[°C]</th>
+            <th>Rain</th>
+        </tr>
+        </thead>
+        {% for h in history %}
+        <tr>
+            <td>{{ h.format_string('time') }}</td>
+            <td>{{ h.format_string('ambientTemperature') }}</td>
+            <td>{{ h.format_string('relativeHumidityPercentage') }}</td>
+            <td>{{ h.format_string('windSpeed') }}</td>
+            <td>{{ h.format_string('skyMinusAmbientTemperature') }}</td>
+            <td>{{ h.format_string('rainSensor') }}</td>
+        </tr>
+        {% end %}
+    </table>
+</div>
+</body>
+</html>
