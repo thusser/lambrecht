@@ -15,5 +15,5 @@ setup(
     },
     package_data={'lambrecht': ['*.html', 'static_html/*.css']},
     include_package_data=True,
-    install_requires=['tornado', 'apscheduler', 'pyserial', 'numpy']
+    install_requires=['tornado', 'apscheduler', 'numpy']
 )
