@@ -51,7 +51,7 @@ class JsonHandler(tornado.web.RequestHandler):
 
 
 class Application(tornado.web.Application):
-    def __init__(self, log_file: str = None, *args, **kwargs):
+    def __init__(self, log_file: str = None, log_current: str = None, log_average: str = None, *args, **kwargs):
         # static path
         static_path = os.path.join(os.path.dirname(__file__), "static_html/")
 
@@ -67,9 +67,11 @@ class Application(tornado.web.Application):
 
         # init other stuff
         self.current: dict[str, float] = {}
-        self.buffer = list(dict[str, float])
-        self.history = list(dict[str, float])
+        self.buffer: list[tuple[Optional[datetime.datetime], dict[str, float]]] = []
+        self.history: list[tuple[Optional[datetime.datetime], dict[str, float]]] = []
         self.log_file = log_file
+        self.log_current = log_current
+        self.log_average = log_average
 
         # load history
         self._load_history()
@@ -108,6 +110,25 @@ class Application(tornado.web.Application):
                 values = [float(s) for s in split[1:]]
                 self.buffer.append((time, values))
 
+                # write to current log
+                if self.log_current is not None:
+                    # get values as dict
+                    avgs = {k: np.mean([b[1][k] for b in self.buffer]) for k in self.current.keys()}
+                    mins = {k: np.min([b[1][k] for b in self.buffer]) for k in self.current.keys()}
+                    maxs = {k: np.max([b[1][k] for b in self.buffer]) for k in self.current.keys()}
+
+                    # write to file
+                    with open(self.log_current, "w") as log_current:
+                        # 2023-07-31T14:34:36,temp,18.5,relhum,75.7,pressure,984.0,winddir,235.5,WDavg,206.6,
+                        # WDmin,51.5,WDmax,0.2,windspeed,5.9,WSavg,5.5,WSmin,1.5,WSmax,8.8,dewpoint,14.1
+                        log_current.write(
+                            f"{time},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
+                            f"winddir,{avgs['winddir']:.1f},WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},"
+                            f"WDmax,{maxs['winddir']:.1f},windspeed,{avgs['windspeed']:.1f},WSavg,"
+                            f"{avgs['windspeed']:.1f},WSmin,{mins['windspeed']:.1f},WSmax,{maxs['windspeed']:.1f},"
+                            f"dewpoint,{avgs['dewpoint']:.1f}\n"
+                        )
+
         # crop
         self._crop_history()
 
@@ -145,13 +166,31 @@ class Application(tornado.web.Application):
                 fmt = (
                     "{time},"
                     "{temp.2f},"
-                    "{winddirspeed:.2f},"
+                    "{windspeed:.2f},"
                     "{winddir:.2f},"
                     "{humid:.2f},"
                     "{dewpoint:.2f},"
                     "{press:.2f}\n"
                 )
                 csv.write(fmt.format(time=time.strftime("%Y-%m-%dT%H:%M:%S"), **average))
+
+            # write to average log
+            if self.log_average is not None:
+                # get values as dict
+                avgs = {k: np.mean([b[1][k] for b in self.buffer]) for k in self.current.keys()}
+                mins = {k: np.min([b[1][k] for b in self.buffer]) for k in self.current.keys()}
+                maxs = {k: np.max([b[1][k] for b in self.buffer]) for k in self.current.keys()}
+
+                # write to file
+                with open(self.log_average, "a") as log_average:
+                    # 2023-01-01T00:00:00,temp,14.9,relhum,58.5,pressure,988.1,WDavg,211.8,WDmin,77.6,WDmax,23.6,
+                    # WSavg,2.5,WSmin,0.0,WSmax,7.7,dewpoint,6.9
+                    log_average.write(
+                        f"{time},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
+                        f"WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},WDmax,{maxs['winddir']:.1f},"
+                        f"WSavg,{avgs['windspeed']:.1f},WSmin,{mins['windspeed']:.1f},WSmax,{maxs['windspeed']:.1f},"
+                        f"dewpoint,{avgs['dewpoint']:.1f}\n"
+                    )
 
         # reset reports
         self.buffer.clear()
@@ -162,6 +201,8 @@ def main():
     parser = argparse.ArgumentParser("Lambrecht meteo data logger")
     parser.add_argument("--dev-file", type=str, default="/dev/ttyS0", help="Device filename")
     parser.add_argument("--log-file", type=str, help="Log file for average values")
+    parser.add_argument("--log-current", type=str, help="Log file for current values (deprecated)")
+    parser.add_argument("--log-average", type=str, help="Log file for average values (deprecated)")
     parser.add_argument("--influx", type=str, help="Four strings containing URL, token, org, and bucket", nargs=4)
     args = parser.parse_args()
 
