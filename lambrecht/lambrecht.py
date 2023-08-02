@@ -184,9 +184,10 @@ class Lambrecht:
 
         # to string
         line = raw_data.decode()
+        print("line:", line)
 
         # split line and check first token
-        s = line.split()
+        s = line.split(",")
         if s[0] == "$WIMTA":
             self._values["temp"] = float(s[1])
         elif s[0] == "$WIMWV":
@@ -196,7 +197,8 @@ class Lambrecht:
             self._values["humid"] = float(s[1])
             self._values["dewpoint"] = float(s[3])
         elif s[0] == "$WIMMB":
-            self._values["press"] = float(s[1])
+            self._values["press"] = float(s[3])
+            print("callback:", self._values)
             self._callback(datetime.datetime.utcnow(), self._values)
 
     def _connect_serial(self):
