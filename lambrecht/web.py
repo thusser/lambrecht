@@ -77,7 +77,7 @@ class Application(tornado.web.Application):
         self._load_history()
 
     @property
-    def average(self) -> tuple[Optional[datetime.datetime, dict[str, float]]]:
+    def average(self) -> tuple[Optional[datetime.datetime], dict[str, float]]:
         return self.history[0] if len(self.history) > 0 else (None, {})
 
     def callback(self, time: datetime.datetime, values: dict[str, float]):
