@@ -1,3 +1,4 @@
+import datetime
 import queue
 import threading
 import time
@@ -50,10 +51,10 @@ class Influx:
         self._closing.set()
         self._thread.join()
 
-    def __call__(self, report: Report):
+    def __call__(self, dt: datetime.datetime, values: dict[str, float]):
         """Put a new measurement in the send queue."""
-        if self._client is not None and isinstance(report, SensorsReport):
-            self._queue.put(report)
+        if self._client is not None:
+            self._queue.put((dt, values))
 
     def _send_measurements(self):
         """Run until closing to send reports."""
@@ -67,19 +68,21 @@ class Influx:
 
         # run (almost) forever
         while not self._closing.is_set():
-            # get next report to send
-            report = self._queue.get()
-
-            # get data
-            report_time = report.time.strftime("%Y-%m-%dT%H:%M:%SZ")
-            fields = {val: float(report.data[key]) if key in report.data else None for key, val in FIELDS.items()}
+            # get next values to send
+            (dt, values) = self._queue.get()
+            print("send:", dt, values)
 
             # send it
             try:
                 write_api.write(
-                    bucket=self._bucket, record={"measurement": "lambrecht", "fields": fields, "time": report_time}
+                    bucket=self._bucket,
+                    record={
+                        "measurement": "lambrecht",
+                        "fields": values,
+                        "time": dt.time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    },
                 )
             except urllib3.exceptions.NewConnectionError:
                 # put message back and wait a little
-                self._queue.put(report)
+                self._queue.put((dt, values))
                 time.sleep(10)
