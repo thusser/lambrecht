@@ -199,6 +199,7 @@ class Application(tornado.web.Application):
 def main():
     # parser
     parser = argparse.ArgumentParser("Lambrecht meteo data logger")
+    parser.add_argument("--http-port", type=int, help="HTTP port for web interface", default=8121)
     parser.add_argument("--port", type=str, help="Serial port to Lambrecht", default="/dev/ttyUSB1")
     parser.add_argument("--baudrate", type=int, help="Baud rate", default=4800)
     parser.add_argument("--bytesize", type=int, help="Byte size", default=8)
@@ -232,7 +233,7 @@ def main():
 
     # init tornado web server
     http_server = tornado.httpserver.HTTPServer(application)
-    http_server.listen(8888)
+    http_server.listen(args.http_port)
 
     # scheduler
     sched = BackgroundScheduler()
