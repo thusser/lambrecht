@@ -199,7 +199,12 @@ class Application(tornado.web.Application):
 def main():
     # parser
     parser = argparse.ArgumentParser("Lambrecht meteo data logger")
-    parser.add_argument("--dev-file", type=str, default="/dev/ttyS0", help="Device filename")
+    parser.add_argument("--port", type=str, help="Serial port to Lambrecht", default="/dev/ttyUSB1")
+    parser.add_argument("--baudrate", type=int, help="Baud rate", default=4800)
+    parser.add_argument("--bytesize", type=int, help="Byte size", default=8)
+    parser.add_argument("--parity", type=str, help="Parity bit", default="N")
+    parser.add_argument("--stopbits", type=int, help="Number of stop bits", default=1)
+    parser.add_argument("--rtscts", type=bool, help="Use RTSCTS?", default=False)
     parser.add_argument("--log-file", type=str, help="Log file for average values")
     parser.add_argument("--log-current", type=str, help="Log file for current values (deprecated)")
     parser.add_argument("--log-average", type=str, help="Log file for average values (deprecated)")
