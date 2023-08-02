@@ -70,7 +70,6 @@ class Influx:
         while not self._closing.is_set():
             # get next values to send
             (dt, values) = self._queue.get()
-            print("send:", dt, values)
 
             # send it
             try:
@@ -79,7 +78,7 @@ class Influx:
                     record={
                         "measurement": "lambrecht",
                         "fields": values,
-                        "time": dt.time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "time": dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     },
                 )
             except urllib3.exceptions.NewConnectionError:
