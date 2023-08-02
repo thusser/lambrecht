@@ -77,7 +77,7 @@ class Influx:
             # send it
             try:
                 write_api.write(
-                    bucket=self._bucket, record={"measurement": "boltwood", "fields": fields, "time": report_time}
+                    bucket=self._bucket, record={"measurement": "lambrecht", "fields": fields, "time": report_time}
                 )
             except urllib3.exceptions.NewConnectionError:
                 # put message back and wait a little
