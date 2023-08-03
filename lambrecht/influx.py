@@ -68,8 +68,12 @@ class Influx:
 
         # run (almost) forever
         while not self._closing.is_set():
-            # get next values to send
-            report = self._queue.get()
+            # get next report to send and copy it
+            report = self._queue.get().copy()
+
+            # convert windspeed from m/s to km/h
+            if "windspeed" in report.values:
+                report.values["windspeed"] *= 3.6
 
             # send it
             try:

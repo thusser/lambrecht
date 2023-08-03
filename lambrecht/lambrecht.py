@@ -23,6 +23,9 @@ class Report:
         )
         self.time = dt if dt is not None else datetime.datetime.utcnow()
 
+    def copy(self):
+        return Report(self.values, self.time)
+
 
 class Lambrecht:
     """Class that operates a Lambrecht meteo weather station."""
