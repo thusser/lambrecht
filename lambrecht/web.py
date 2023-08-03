@@ -197,6 +197,9 @@ class Application(tornado.web.Application):
 
 
 def main():
+    # logging
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s")
+
     # parser
     parser = argparse.ArgumentParser("Lambrecht meteo data logger")
     parser.add_argument("--http-port", type=int, help="HTTP port for web interface", default=8121)
