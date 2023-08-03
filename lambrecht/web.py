@@ -12,7 +12,10 @@ import logging
 import numpy as np
 
 from lambrecht.influx import Influx
-from .lambrecht import Lambrecht
+from .lambrecht import Lambrecht, Report
+
+COLUMNS = "time,temp,windspeed,winddir,humid,dewpoint,press"
+COLS = COLUMNS.split(",")
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -37,17 +40,14 @@ class JsonHandler(tornado.web.RequestHandler):
 
         # get record
         if which == "current":
-            time, values = self.application.current
+            report = self.application.current
         elif which == "average":
-            time, values = self.application.average
+            report = self.application.average
         else:
             raise tornado.web.HTTPError(404)
 
-        # get data
-        values["time"] = time
-
         # send to client
-        self.write(json.dumps(values))
+        self.write(json.dumps(report))
 
 
 class Application(tornado.web.Application):
@@ -66,9 +66,9 @@ class Application(tornado.web.Application):
         )
 
         # init other stuff
-        self.current: dict[str, float] = {}
-        self.buffer: list[tuple[Optional[datetime.datetime], dict[str, float]]] = []
-        self.history: list[tuple[Optional[datetime.datetime], dict[str, float]]] = []
+        self.current: Report = Report()
+        self.buffer: list[Report] = []
+        self.history: list[Report] = []
         self.log_file = log_file
         self.log_current = log_current
         self.log_average = log_average
@@ -77,12 +77,12 @@ class Application(tornado.web.Application):
         self._load_history()
 
     @property
-    def average(self) -> tuple[Optional[datetime.datetime], dict[str, float]]:
-        return self.history[0] if len(self.history) > 0 else (None, {})
+    def average(self) -> Report:
+        return self.history[0] if len(self.history) > 0 else Report()
 
-    def callback(self, time: datetime.datetime, values: dict[str, float]):
-        self.current = (time, values)
-        self.buffer.append((time, values))
+    def callback(self, report: Report):
+        self.current = report
+        self.buffer.append(report)
 
     def _load_history(self):
         """Load history from log file"""
@@ -109,14 +109,15 @@ class Application(tornado.web.Application):
                 # read line
                 time = datetime.datetime.strptime(split[0], "%Y-%m-%dT%H:%M:%S")
                 values = [float(s) for s in split[1:]]
-                self.buffer.append((time, values))
+                val_dict = {c: v for c, v in zip(COLS, values)}
+                self.buffer.append(Report(val_dict, time))
 
                 # write to current log
                 if self.log_current is not None:
                     # get values as dict
-                    avgs = {k: np.mean([b[1][k] for b in self.buffer]) for k in self.current.keys()}
-                    mins = {k: np.min([b[1][k] for b in self.buffer]) for k in self.current.keys()}
-                    maxs = {k: np.max([b[1][k] for b in self.buffer]) for k in self.current.keys()}
+                    avgs = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
+                    mins = {k: np.min([b.values[k] for b in self.buffer]) for k in COLS}
+                    maxs = {k: np.max([b.values[k] for b in self.buffer]) for k in COLS}
 
                     # write to file
                     with open(self.log_current, "w") as log_current:
@@ -135,7 +136,7 @@ class Application(tornado.web.Application):
 
     def _crop_history(self):
         # sort history
-        self.history = sorted(self.history, key=lambda h: h[0], reverse=True)
+        self.history = sorted(self.history, key=lambda h: h.time, reverse=True)
 
         # crop to 10 entries
         if len(self.history) > 10:
@@ -148,10 +149,10 @@ class Application(tornado.web.Application):
 
         # average reports
         time = self.buffer[0][0]
-        average = {k: np.mean([b[1][k] for b in self.buffer]) for k in self.current.keys()}
+        average = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
 
         # add to history
-        self.history.append((time, average))
+        self.history.append(Report(average, time))
         self._crop_history()
 
         # write to log file?
@@ -178,9 +179,9 @@ class Application(tornado.web.Application):
             # write to average log
             if self.log_average is not None:
                 # get values as dict
-                avgs = {k: np.mean([b[1][k] for b in self.buffer]) for k in self.current.keys()}
-                mins = {k: np.min([b[1][k] for b in self.buffer]) for k in self.current.keys()}
-                maxs = {k: np.max([b[1][k] for b in self.buffer]) for k in self.current.keys()}
+                avgs = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
+                mins = {k: np.min([b.values[k] for b in self.buffer]) for k in COLS}
+                maxs = {k: np.max([b.values[k] for b in self.buffer]) for k in COLS}
 
                 # write to file
                 with open(self.log_average, "a") as log_average:

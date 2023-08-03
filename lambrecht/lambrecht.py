@@ -2,8 +2,26 @@ import datetime
 import logging
 import threading
 import time
+from typing import Optional
 
 import serial
+
+
+class Report:
+    def __init__(self, values: Optional[dict[str, float]] = None, dt: Optional[datetime.datetime] = None):
+        self.values = (
+            values
+            if values is not None
+            else {
+                "temp": 0,
+                "winddir": 0,
+                "windspeed": 0,
+                "humid": 0,
+                "dewpoint": 0,
+                "press": 0,
+            }
+        )
+        self.time = dt if dt is not None else datetime.datetime.utcnow()
 
 
 class Lambrecht:
@@ -197,7 +215,7 @@ class Lambrecht:
             self._values["dewpoint"] = float(s[3])
         elif s[0] == "$WIMMB":
             self._values["press"] = float(s[3])
-            self._callback(datetime.datetime.utcnow(), self._values)
+            self._callback(Report(self._values))
 
     def _connect_serial(self):
         """Open/reset serial connection to sensor."""
