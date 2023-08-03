@@ -148,8 +148,8 @@ class Application(tornado.web.Application):
             return
 
         # average reports
-        time = self.buffer[0].time
-        average = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
+        time = datetime.datetime.now()
+        average = {k: float(np.mean([b.values[k] for b in self.buffer])) for k in COLS}
 
         # add to history
         self.history.append(Report(average, time))
@@ -167,7 +167,7 @@ class Application(tornado.web.Application):
             with open(self.log_file, "a") as csv:
                 fmt = (
                     "{time},"
-                    "{temp.2f},"
+                    "{temp:.2f},"
                     "{windspeed:.2f},"
                     "{winddir:.2f},"
                     "{humid:.2f},"
