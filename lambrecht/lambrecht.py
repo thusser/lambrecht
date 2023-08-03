@@ -143,18 +143,26 @@ class Lambrecht:
 
             # actually read next line and process it
             if self._conn is not None:
-                # read data
-                raw_data += self._conn.read()
-
-                # extract messages
-                msgs, raw_data = self._extract_messages(raw_data)
-
-                # analyse it
-                for msg in msgs:
-                    self._analyse_message(msg)
+                try:
+                    raw_data = self._read_data(raw_data)
+                except:
+                    self._closing.wait(sleep_time)
+                    continue
 
         # close connection
         self._conn.close()
+
+    def _read_data(self, raw_data: bytes):
+        # read data
+        raw_data += self._conn.read()
+
+        # extract messages
+        msgs, raw_data = self._extract_messages(raw_data)
+
+        # analyse it and return remaining data
+        for msg in msgs:
+            self._analyse_message(msg)
+        return raw_data
 
     def _extract_messages(self, raw_data) -> (list, bytearray):
         """Extract all complete messages from the raw data from the Boltwood.
