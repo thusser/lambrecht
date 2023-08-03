@@ -82,6 +82,7 @@ class Application(tornado.web.Application):
 
     def callback(self, time: datetime.datetime, values: dict[str, float]):
         self.current = (time, values)
+        self.buffer.append((time, values))
 
     def _load_history(self):
         """Load history from log file"""
