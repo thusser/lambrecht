@@ -87,6 +87,7 @@ class Application(tornado.web.Application):
         # write to current log
         if self.log_current is not None:
             # get values as dict
+            time = report.time.strftime("%Y-%m-%dT%H:%M:%S")
             avgs = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
             mins = {k: np.min([b.values[k] for b in self.buffer]) for k in COLS}
             maxs = {k: np.max([b.values[k] for b in self.buffer]) for k in COLS}
@@ -96,7 +97,7 @@ class Application(tornado.web.Application):
                 # 2023-07-31T14:34:36,temp,18.5,relhum,75.7,pressure,984.0,winddir,235.5,WDavg,206.6,
                 # WDmin,51.5,WDmax,0.2,windspeed,5.9,WSavg,5.5,WSmin,1.5,WSmax,8.8,dewpoint,14.1
                 log_current.write(
-                    f"{report.time},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
+                    f"{time},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
                     f"winddir,{avgs['winddir']:.1f},WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},"
                     f"WDmax,{maxs['winddir']:.1f},windspeed,{avgs['windspeed']:.1f},WSavg,"
                     f"{avgs['windspeed']:.1f},WSmin,{mins['windspeed']:.1f},WSmax,{maxs['windspeed']:.1f},"
@@ -187,8 +188,9 @@ class Application(tornado.web.Application):
             with open(self.log_average, "a") as log_average:
                 # 2023-01-01T00:00:00,temp,14.9,relhum,58.5,pressure,988.1,WDavg,211.8,WDmin,77.6,WDmax,23.6,
                 # WSavg,2.5,WSmin,0.0,WSmax,7.7,dewpoint,6.9
+                t = time.strftime("%Y-%m-%dT%H:%M:%S")
                 log_average.write(
-                    f"{time},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
+                    f"{t},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
                     f"WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},WDmax,{maxs['winddir']:.1f},"
                     f"WSavg,{avgs['windspeed']:.1f},WSmin,{mins['windspeed']:.1f},WSmax,{maxs['windspeed']:.1f},"
                     f"dewpoint,{avgs['dewpoint']:.1f}\n"
