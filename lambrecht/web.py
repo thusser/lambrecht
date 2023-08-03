@@ -15,7 +15,7 @@ from lambrecht.influx import Influx
 from .lambrecht import Lambrecht, Report
 
 COLUMNS = "time,temp,windspeed,winddir,humid,dewpoint,press"
-COLS = COLUMNS.split(",")
+COLS = COLUMNS.split(",")[1:]
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -148,7 +148,7 @@ class Application(tornado.web.Application):
             return
 
         # average reports
-        time = self.buffer[0]
+        time = self.buffer[0].time
         average = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
 
         # add to history
