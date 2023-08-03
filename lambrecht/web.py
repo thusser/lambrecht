@@ -2,6 +2,7 @@ import argparse
 import datetime
 import json
 import os
+import time
 from typing import Optional
 import tornado.ioloop
 import tornado.web
@@ -16,6 +17,12 @@ from .lambrecht import Lambrecht, Report
 
 COLUMNS = "time,temp,windspeed,winddir,humid,dewpoint,press"
 COLS = COLUMNS.split(",")[1:]
+
+
+def datetime_from_utc_to_local(utc_datetime):
+    now_timestamp = time.time()
+    offset = datetime.fromtimestamp(now_timestamp) - datetime.utcfromtimestamp(now_timestamp)
+    return utc_datetime + offset
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -87,7 +94,7 @@ class Application(tornado.web.Application):
         # write to current log
         if self.log_current is not None:
             # get values as dict
-            time = report.time.strftime("%Y-%m-%dT%H:%M:%S")
+            t = datetime_from_utc_to_local(report.time).strftime("%Y-%m-%dT%H:%M:%S")
             avgs = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
             mins = {k: np.min([b.values[k] for b in self.buffer]) for k in COLS}
             maxs = {k: np.max([b.values[k] for b in self.buffer]) for k in COLS}
@@ -188,7 +195,7 @@ class Application(tornado.web.Application):
             with open(self.log_average, "a") as log_average:
                 # 2023-01-01T00:00:00,temp,14.9,relhum,58.5,pressure,988.1,WDavg,211.8,WDmin,77.6,WDmax,23.6,
                 # WSavg,2.5,WSmin,0.0,WSmax,7.7,dewpoint,6.9
-                t = time.strftime("%Y-%m-%dT%H:%M:%S")
+                t = datetime_from_utc_to_local(time).strftime("%Y-%m-%dT%H:%M:%S")
                 log_average.write(
                     f"{t},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
                     f"WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},WDmax,{maxs['winddir']:.1f},"
