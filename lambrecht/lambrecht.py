@@ -149,7 +149,6 @@ class Lambrecht:
                 # analyse it
                 for msg in msgs:
                     self._analyse_message(msg)
-                    last_report = time.time()
 
         # close connection
         self._conn.close()

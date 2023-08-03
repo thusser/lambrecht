@@ -148,7 +148,7 @@ class Application(tornado.web.Application):
             return
 
         # average reports
-        time = self.buffer[0][0]
+        time = self.buffer[0]
         average = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
 
         # add to history
