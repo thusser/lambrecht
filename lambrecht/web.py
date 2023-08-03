@@ -176,23 +176,23 @@ class Application(tornado.web.Application):
                 )
                 csv.write(fmt.format(time=time.strftime("%Y-%m-%dT%H:%M:%S"), **average))
 
-            # write to average log
-            if self.log_average is not None:
-                # get values as dict
-                avgs = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
-                mins = {k: np.min([b.values[k] for b in self.buffer]) for k in COLS}
-                maxs = {k: np.max([b.values[k] for b in self.buffer]) for k in COLS}
+        # write to average log
+        if self.log_average is not None:
+            # get values as dict
+            avgs = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
+            mins = {k: np.min([b.values[k] for b in self.buffer]) for k in COLS}
+            maxs = {k: np.max([b.values[k] for b in self.buffer]) for k in COLS}
 
-                # write to file
-                with open(self.log_average, "a") as log_average:
-                    # 2023-01-01T00:00:00,temp,14.9,relhum,58.5,pressure,988.1,WDavg,211.8,WDmin,77.6,WDmax,23.6,
-                    # WSavg,2.5,WSmin,0.0,WSmax,7.7,dewpoint,6.9
-                    log_average.write(
-                        f"{time},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
-                        f"WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},WDmax,{maxs['winddir']:.1f},"
-                        f"WSavg,{avgs['windspeed']:.1f},WSmin,{mins['windspeed']:.1f},WSmax,{maxs['windspeed']:.1f},"
-                        f"dewpoint,{avgs['dewpoint']:.1f}\n"
-                    )
+            # write to file
+            with open(self.log_average, "a") as log_average:
+                # 2023-01-01T00:00:00,temp,14.9,relhum,58.5,pressure,988.1,WDavg,211.8,WDmin,77.6,WDmax,23.6,
+                # WSavg,2.5,WSmin,0.0,WSmax,7.7,dewpoint,6.9
+                log_average.write(
+                    f"{time},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
+                    f"WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},WDmax,{maxs['winddir']:.1f},"
+                    f"WSavg,{avgs['windspeed']:.1f},WSmin,{mins['windspeed']:.1f},WSmax,{maxs['windspeed']:.1f},"
+                    f"dewpoint,{avgs['dewpoint']:.1f}\n"
+                )
 
         # reset reports
         self.buffer.clear()
