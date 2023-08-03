@@ -228,10 +228,10 @@ def main():
     influx.start()
 
     # callback method
-    def callback(time: datetime.datetime, values: dict[str, float]):
+    def callback(report: Report):
         # forward to application and influx
-        application.callback(time, values)
-        influx(time, values)
+        application.callback(report)
+        influx(report)
 
     # start polling
     lambrecht.start_polling(callback)
