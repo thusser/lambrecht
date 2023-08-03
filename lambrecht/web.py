@@ -104,7 +104,7 @@ class Application(tornado.web.Application):
                 # 2023-07-31T14:34:36,temp,18.5,relhum,75.7,pressure,984.0,winddir,235.5,WDavg,206.6,
                 # WDmin,51.5,WDmax,0.2,windspeed,5.9,WSavg,5.5,WSmin,1.5,WSmax,8.8,dewpoint,14.1
                 log_current.write(
-                    f"{time},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
+                    f"{t},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
                     f"winddir,{avgs['winddir']:.1f},WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},"
                     f"WDmax,{maxs['winddir']:.1f},windspeed,{avgs['windspeed']:.1f},WSavg,"
                     f"{avgs['windspeed']:.1f},WSmin,{mins['windspeed']:.1f},WSmax,{maxs['windspeed']:.1f},"
