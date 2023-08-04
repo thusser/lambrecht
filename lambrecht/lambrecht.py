@@ -63,7 +63,7 @@ class Lambrecht:
         # poll thread
         self._closing = None
         self._thread = None
-        self._thread_sleep = 1
+        self._thread_sleep = 10
         self._max_thread_sleep = 900
 
         # callback function
@@ -139,6 +139,7 @@ class Lambrecht:
             if self._conn is not None:
                 try:
                     raw_data = self._read_data(raw_data)
+                    self._closing.wait(sleep_time)
                 except:
                     self._closing.wait(sleep_time)
                     continue
