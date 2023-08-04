@@ -9,19 +9,14 @@ import serial
 
 class Report:
     def __init__(self, values: Optional[dict[str, float]] = None, dt: Optional[datetime.datetime] = None):
-        self.values = (
-            values
-            if values is not None
-            else {
-                "temp": 0,
-                "winddir": 0,
-                "windspeed": 0,
-                "humid": 0,
-                "dewpoint": 0,
-                "press": 0,
-            }
-        )
+        self.values = values if values is not None else {}
         self.time = dt if dt is not None else datetime.datetime.utcnow()
+
+    def finished(self):
+        for c in ["temp", "winddir", "windspeed", "humid", "dewpoint", "press"]:
+            if c not in self.values:
+                return False
+        return True
 
     def copy(self):
         return Report(self.values, self.time)
@@ -75,7 +70,7 @@ class Lambrecht:
         self._callback = None
 
         # init values
-        self._values = {"temp": 0.0, "windspeed": 0.0, "winddir": 0.0, "humid": 0.0, "dewpoint": 0.0, "press": 0.0}
+        self._report = Report()
 
     def start_polling(self, callback):
         """Start polling the Lambrecht meteo weather station.
@@ -110,7 +105,6 @@ class Lambrecht:
         # init
         serial_errors = 0
         sleep_time = self._thread_sleep
-        last_report = None
         raw_data = b""
 
         # loop until closing
@@ -143,18 +137,26 @@ class Lambrecht:
 
             # actually read next line and process it
             if self._conn is not None:
-                # read data
-                raw_data += self._conn.read()
-
-                # extract messages
-                msgs, raw_data = self._extract_messages(raw_data)
-
-                # analyse it
-                for msg in msgs:
-                    self._analyse_message(msg)
+                try:
+                    raw_data = self._read_data(raw_data)
+                except:
+                    self._closing.wait(sleep_time)
+                    continue
 
         # close connection
         self._conn.close()
+
+    def _read_data(self, raw_data: bytes):
+        # read data
+        raw_data += self._conn.read()
+
+        # extract messages
+        msgs, raw_data = self._extract_messages(raw_data)
+
+        # analyse it and return remaining data
+        for msg in msgs:
+            self._analyse_message(msg)
+        return raw_data
 
     def _extract_messages(self, raw_data) -> (list, bytearray):
         """Extract all complete messages from the raw data from the Boltwood.
@@ -208,16 +210,21 @@ class Lambrecht:
         # split line and check first token
         s = line.split(",")
         if s[0] == "$WIMTA":
-            self._values["temp"] = float(s[1])
+            self._report.values["temp"] = float(s[1])
         elif s[0] == "$WIMWV":
-            self._values["winddir"] = float(s[1])
-            self._values["windspeed"] = float(s[3])
+            self._report.values["winddir"] = float(s[1])
+            self._report.values["windspeed"] = float(s[3])
         elif s[0] == "$WIMHU":
-            self._values["humid"] = float(s[1])
-            self._values["dewpoint"] = float(s[3])
+            self._report.values["humid"] = float(s[1])
+            self._report.values["dewpoint"] = float(s[3])
         elif s[0] == "$WIMMB":
-            self._values["press"] = float(s[3])
-            self._callback(Report(self._values))
+            self._report.values["press"] = float(s[3])
+
+        # finished?
+        if self._report.finished():
+            self._report.time = datetime.datetime.utcnow()
+            self._callback(self._report)
+            self._report = Report()
 
     def _connect_serial(self):
         """Open/reset serial connection to sensor."""
