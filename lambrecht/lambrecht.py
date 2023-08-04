@@ -139,7 +139,6 @@ class Lambrecht:
             if self._conn is not None:
                 try:
                     raw_data = self._read_data(raw_data)
-                    self._closing.wait(sleep_time)
                 except:
                     self._closing.wait(sleep_time)
                     continue
@@ -226,6 +225,7 @@ class Lambrecht:
             self._report.time = datetime.datetime.utcnow()
             self._callback(self._report)
             self._report = Report()
+            self._closing.wait(self._thread_sleep)
 
     def _connect_serial(self):
         """Open/reset serial connection to sensor."""
