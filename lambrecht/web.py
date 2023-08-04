@@ -122,6 +122,7 @@ class Application(tornado.web.Application):
             return
 
         # open file
+        logging.info("Loading history...")
         with open(self.log_file, "r") as csv:
             # check header
             if csv.readline() != "time,temp,windspeed,winddir,humid,dewpoint,press\n":
@@ -144,6 +145,7 @@ class Application(tornado.web.Application):
 
         # crop
         self._crop_history()
+        logging.info("Finished loading history.")
 
     def _crop_history(self):
         # sort history
