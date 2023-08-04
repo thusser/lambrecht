@@ -148,6 +148,7 @@ class Lambrecht:
 
     def _read_data(self, raw_data: bytes):
         # read data
+        self._closing.wait(0.1)
         raw_data += self._conn.read()
 
         # extract messages
