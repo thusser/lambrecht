@@ -111,7 +111,7 @@ class Lambrecht:
         while not self._closing.is_set():
             # get serial connection
             if self._conn is None:
-                logging.info("connecting to Boltwood II sensor")
+                logging.info("Connecting to Lambrecht meteo weather station...")
                 try:
                     # connect
                     self._connect_serial()
