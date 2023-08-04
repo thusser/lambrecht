@@ -75,7 +75,10 @@ class Application(tornado.web.Application):
         self.log_average = log_average
 
         # load history
-        self._load_history()
+        try:
+            self._load_history()
+        except:
+            pass
 
     @property
     def average(self) -> Report:
@@ -87,23 +90,29 @@ class Application(tornado.web.Application):
 
         # write to current log
         if self.log_current is not None:
-            # get values as dict
-            t = report.time.strftime("%Y-%m-%dT%H:%M:%S")
-            avgs = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
-            mins = {k: np.min([b.values[k] for b in self.buffer]) for k in COLS}
-            maxs = {k: np.max([b.values[k] for b in self.buffer]) for k in COLS}
+            try:
+                self._write_log_current(report)
+            except:
+                pass
 
-            # write to file
-            with open(self.log_current, "w") as log_current:
-                # 2023-07-31T14:34:36,temp,18.5,relhum,75.7,pressure,984.0,winddir,235.5,WDavg,206.6,
-                # WDmin,51.5,WDmax,0.2,windspeed,5.9,WSavg,5.5,WSmin,1.5,WSmax,8.8,dewpoint,14.1
-                log_current.write(
-                    f"{t},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
-                    f"winddir,{avgs['winddir']:.1f},WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},"
-                    f"WDmax,{maxs['winddir']:.1f},windspeed,{avgs['windspeed']:.1f},WSavg,"
-                    f"{avgs['windspeed']:.1f},WSmin,{mins['windspeed']:.1f},WSmax,{maxs['windspeed']:.1f},"
-                    f"dewpoint,{avgs['dewpoint']:.1f}\n"
-                )
+    def _write_log_current(self, report: Report):
+        # get values as dict
+        t = report.time.strftime("%Y-%m-%dT%H:%M:%S")
+        avgs = {k: np.mean([b.values[k] for b in self.buffer]) for k in COLS}
+        mins = {k: np.min([b.values[k] for b in self.buffer]) for k in COLS}
+        maxs = {k: np.max([b.values[k] for b in self.buffer]) for k in COLS}
+
+        # write to file
+        with open(self.log_current, "w") as log_current:
+            # 2023-07-31T14:34:36,temp,18.5,relhum,75.7,pressure,984.0,winddir,235.5,WDavg,206.6,
+            # WDmin,51.5,WDmax,0.2,windspeed,5.9,WSavg,5.5,WSmin,1.5,WSmax,8.8,dewpoint,14.1
+            log_current.write(
+                f"{t},temp,{avgs['temp']:.1f},relhum,{avgs['humid']:.1f},pressure,{avgs['press']:.1f},"
+                f"winddir,{avgs['winddir']:.1f},WDavg,{avgs['winddir']:.1f},WDmin,{mins['winddir']:.1f},"
+                f"WDmax,{maxs['winddir']:.1f},windspeed,{avgs['windspeed']:.1f},WSavg,"
+                f"{avgs['windspeed']:.1f},WSmin,{mins['windspeed']:.1f},WSmax,{maxs['windspeed']:.1f},"
+                f"dewpoint,{avgs['dewpoint']:.1f}\n"
+            )
 
     def _load_history(self):
         """Load history from log file"""
