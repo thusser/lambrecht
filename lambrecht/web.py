@@ -85,8 +85,10 @@ class Application(tornado.web.Application):
         return self.history[0] if len(self.history) > 0 else Report()
 
     def callback(self, report: Report):
+        # store and log
         self.current = report
         self.buffer.append(report)
+        logging.info(report.values)
 
         # write to current log
         if self.log_current is not None:
