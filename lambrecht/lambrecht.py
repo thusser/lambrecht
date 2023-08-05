@@ -105,7 +105,6 @@ class Lambrecht:
         # init
         serial_errors = 0
         sleep_time = self._thread_sleep
-        raw_data = b""
 
         # loop until closing
         while not self._closing.is_set():
@@ -138,7 +137,8 @@ class Lambrecht:
             # actually read next line and process it
             if self._conn is not None:
                 try:
-                    raw_data = self._read_data(raw_data)
+                    self._closing.wait(0.01)
+                    self._read_data()
                 except:
                     self._closing.wait(sleep_time)
                     continue
@@ -146,67 +146,23 @@ class Lambrecht:
         # close connection
         self._conn.close()
 
-    def _read_data(self, raw_data: bytes):
+    def _read_data(self):
         # read data
-        self._closing.wait(0.1)
-        raw_data += self._conn.read()
-
-        # extract messages
-        msgs, raw_data = self._extract_messages(raw_data)
+        line = self._conn.readline().strip().decode()
 
         # analyse it and return remaining data
-        for msg in msgs:
-            self._analyse_message(msg)
-        return raw_data
+        if len(line) > 0:
+            self._analyse_message(line)
 
-    def _extract_messages(self, raw_data) -> (list, bytearray):
-        """Extract all complete messages from the raw data from the Boltwood.
-
-        Args:
-            raw_data: bytearray from Boltwood (via serial.readline())
-
-        Returns:
-            List of messages and remaining raw data.
-
-        Normally, there should just be a single message per readline, but....
-        """
-
-        # nothing?
-        if not raw_data:
-            return [], b""
-
-        # find complete messages
-        msgs = []
-        while b"\n" in raw_data:
-            # get message
-            pos = raw_data.index(b"\n")
-            msg = raw_data[: pos + 1]
-
-            # store it
-            msgs.append(msg)
-
-            # remove from raw_data
-            raw_data = raw_data[pos + 1 :]
-
-        # return new raw_data and messages
-        return msgs, raw_data
-
-    def _analyse_message(self, raw_data):
+    def _analyse_message(self, line: str):
         """Analyse raw message.
 
         Args:
-            raw_data: Raw data.
+            line: Line data.
 
         Returns:
 
         """
-
-        # no data?
-        if len(raw_data) == 0 or raw_data == b"\n":
-            return
-
-        # to string
-        line = raw_data.decode()
 
         # split line and check first token
         s = line.split(",")
@@ -226,7 +182,6 @@ class Lambrecht:
             self._report.time = datetime.datetime.utcnow()
             self._callback(self._report)
             self._report = Report()
-            self._closing.wait(self._thread_sleep)
 
     def _connect_serial(self):
         """Open/reset serial connection to sensor."""
