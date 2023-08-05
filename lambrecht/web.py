@@ -88,7 +88,7 @@ class Application(tornado.web.Application):
         # store and log
         self.current = report
         self.buffer.append(report)
-        logging.info(report.values)
+        logging.debug(report.values)
 
         # write to current log
         if self.log_current is not None:
