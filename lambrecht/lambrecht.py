@@ -63,7 +63,7 @@ class Lambrecht:
         # poll thread
         self._closing = None
         self._thread = None
-        self._thread_sleep = 1
+        self._thread_sleep = 10
         self._max_thread_sleep = 900
 
         # init
@@ -108,120 +108,66 @@ class Lambrecht:
         """
 
         # init
-        self._serial_errors = 0
-        self._sleep_time = self._thread_sleep
-        self._raw_data = b""
+        serial_errors = 0
+        sleep_time = self._thread_sleep
 
         # loop until closing
         while not self._closing.is_set():
-            try:
-                self._poll()
-            except:
-                # sleep a little and continue
-                logging.exception("Somethingw went wrong")
-                time.sleep(10)
+            # get serial connection
+            if self._conn is None:
+                logging.info("Connecting to Lambrecht meteo weather station...")
+                try:
+                    # connect
+                    self._connect_serial()
+
+                    # reset sleep time
+                    serial_errors = 0
+                    sleep_time = self._thread_sleep
+
+                except serial.SerialException as e:
+                    # if no connection, log less often
+                    serial_errors += 1
+                    if serial_errors % 10 == 0:
+                        if sleep_time < self._max_thread_sleep:
+                            sleep_time *= 2
+                        else:
+                            sleep_time = self._thread_sleep
+
+                    # do logging
+                    logging.critical(
+                        "%d failed connections to Lambrecht: %s, sleep %d", serial_errors, str(e), sleep_time
+                    )
+                    self._closing.wait(sleep_time)
+
+            # actually read next line and process it
+            if self._conn is not None:
+                try:
+                    self._closing.wait(0.01)
+                    self._read_data()
+                except:
+                    self._closing.wait(sleep_time)
+                    continue
 
         # close connection
         self._conn.close()
 
-    def _poll(self):
-        # get serial connection
-        if self._conn is None:
-            logging.info("connecting to Boltwood II sensor")
-            try:
-                # connect
-                self._connect_serial()
-
-                # reset sleep time
-                self._serial_errors = 0
-                self._sleep_time = self._thread_sleep
-
-            except serial.SerialException as e:
-                # if no connection, log less often
-                self._serial_errors += 1
-                if self._serial_errors % 10 == 0:
-                    if self._sleep_time < self._max_thread_sleep:
-                        self._sleep_time *= 2
-                    else:
-                        self._sleep_time = self._thread_sleep
-
-                # do logging
-                logging.critical(
-                    "%d failed connections to Lambrecht: %s, sleep %d",
-                    self._serial_errors,
-                    str(e),
-                    self._sleep_time,
-                )
-                self._closing.wait(self._sleep_time)
-
-        # actually read next line and process it
-        if self._conn is not None:
-            try:
-                self._raw_data = self._read_data(self._raw_data)
-            except:
-                self._closing.wait(self._sleep_time)
-                return
-
-    def _read_data(self, raw_data: bytes):
+    def _read_data(self):
         # read data
-        self._raw_data += self._conn.read()
-
-        # extract messages
-        msgs, self._raw_data = self._extract_messages(self._raw_data)
+        line = self._conn.readline().strip().decode()
 
         # analyse it and return remaining data
-        for msg in msgs:
-            self._analyse_message(msg)
-        return self._raw_data
+        if len(line) > 0:
+            self._analyse_message(line)
 
-    def _extract_messages(self, raw_data) -> (list, bytearray):
-        """Extract all complete messages from the raw data from the Boltwood.
-
-        Args:
-            self._raw_data: bytearray from Boltwood (via serial.readline())
-
-        Returns:
-            List of messages and remaining raw data.
-
-        Normally, there should just be a single message per readline, but....
-        """
-
-        # nothing?
-        if not self._raw_data:
-            return [], b""
-
-        # find complete messages
-        msgs = []
-        while b"\n" in self._raw_data:
-            # get message
-            pos = self._raw_data.index(b"\n")
-            msg = self._raw_data[: pos + 1]
-
-            # store it
-            msgs.append(msg)
-
-            # remove from self._raw_data
-            self._raw_data = self._raw_data[pos + 1 :]
-
-        # return new self._raw_data and messages
-        return msgs, self._raw_data
-
-    def _analyse_message(self, raw_data):
+    def _analyse_message(self, line: str):
         """Analyse raw message.
 
         Args:
-            self._raw_data: Raw data.
+            line: Line data.
 
         Returns:
 
         """
-
-        # no data?
-        if len(self._raw_data) == 0 or self._raw_data == b"\n":
-            return
-
-        # to string
-        line = self._raw_data.decode()
 
         # split line and check first token
         s = line.split(",")
