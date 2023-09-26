@@ -69,7 +69,6 @@ class Lambrecht:
         # init
         self._serial_errors = 0
         self._sleep_time = self._thread_sleep
-        self._raw_data = b""
 
         # callback function
         self._callback = None
@@ -108,48 +107,56 @@ class Lambrecht:
         """
 
         # init
-        serial_errors = 0
-        sleep_time = self._thread_sleep
+        self._serial_errors = 0
+        self._sleep_time = self._thread_sleep
 
         # loop until closing
         while not self._closing.is_set():
-            # get serial connection
-            if self._conn is None:
-                logging.info("Connecting to Lambrecht meteo weather station...")
-                try:
-                    # connect
-                    self._connect_serial()
-
-                    # reset sleep time
-                    serial_errors = 0
-                    sleep_time = self._thread_sleep
-
-                except serial.SerialException as e:
-                    # if no connection, log less often
-                    serial_errors += 1
-                    if serial_errors % 10 == 0:
-                        if sleep_time < self._max_thread_sleep:
-                            sleep_time *= 2
-                        else:
-                            sleep_time = self._thread_sleep
-
-                    # do logging
-                    logging.critical(
-                        "%d failed connections to Lambrecht: %s, sleep %d", serial_errors, str(e), sleep_time
-                    )
-                    self._closing.wait(sleep_time)
-
-            # actually read next line and process it
-            if self._conn is not None:
-                try:
-                    self._closing.wait(0.01)
-                    self._read_data()
-                except:
-                    self._closing.wait(sleep_time)
-                    continue
+            try:
+                self._poll()
+            except:
+                # sleep a little and continue
+                logging.exception("Somethingw went wrong")
+                time.sleep(10)
 
         # close connection
         self._conn.close()
+
+    def _poll(self):
+        # get serial connection
+        if self._conn is None:
+            logging.info("Connecting to Lambrecht meteo weather station...")
+            try:
+                # connect
+                self._connect_serial()
+
+                # reset sleep time
+                self._serial_errors = 0
+                self._sleep_time = self._thread_sleep
+
+            except serial.SerialException as e:
+                # if no connection, log less often
+                self._serial_errors += 1
+                if self._serial_errors % 10 == 0:
+                    if self._sleep_time < self._max_thread_sleep:
+                        self._sleep_time *= 2
+                    else:
+                        self._sleep_time = self._thread_sleep
+
+                # do logging
+                logging.critical(
+                    "%d failed connections to Lambrecht: %s, sleep %d", self._serial_errors, str(e), self._sleep_time
+                )
+                self._closing.wait(self._sleep_time)
+
+        # actually read next line and process it
+        if self._conn is not None:
+            try:
+                self._closing.wait(0.01)
+                self._read_data()
+            except:
+                self._closing.wait(self._sleep_time)
+                return
 
     def _read_data(self):
         # read data
